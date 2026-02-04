@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BULK - Stack or Get Rekt</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #050505;
+            --text-color: #f0f0f0;
+            --accent-gold: #e2d1c3;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* --- VISUAL EFFECTS --- */
+        .noise {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 50; opacity: 0.07;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        .beams {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1; pointer-events: none;
+            background: linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.03) 15%, transparent 20%),
+                        linear-gradient(90deg, transparent 35%, rgba(255,255,255,0.02) 40%, transparent 45%),
+                        linear-gradient(90deg, transparent 70%, rgba(255,255,255,0.04) 75%, transparent 80%);
+            filter: blur(20px);
+            animation: beamPulse 8s infinite ease-in-out;
+        }
+
+        .stars {
+            position: absolute; width: 100%; height: 100%; z-index: 0;
+            background-image: radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)),
+                              radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0));
+            background-size: 200px 200px;
+            opacity: 0.6;
+            animation: starsMove 100s linear infinite;
+        }
+
+        /* --- CONTENT --- */
+        .content-wrapper {
+            z-index: 10; text-align: center; max-width: 600px; padding: 20px;
+            position: relative;
+        }
+
+        .logo {
+            width: 120px; margin-bottom: 2rem; opacity: 0.9;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+        }
+
+        .mascot-container {
+            position: relative; height: 300px;
+            display: flex; justify-content: center; align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .mascot-img {
+            max-height: 100%; max-width: 100%;
+            filter: grayscale(20%) contrast(110%);
+            animation: float 6s ease-in-out infinite;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem; font-weight: 400; line-height: 1.2;
+            margin-bottom: 2.5rem; letter-spacing: -0.02em;
+            background: linear-gradient(180deg, #fff 0%, #ccc 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: opacity 0.3s;
+        }
+
+        .btn-group { display: flex; gap: 20px; justify-content: center; }
+
+        .btn {
+            padding: 14px 40px; font-size: 1rem; font-family: 'Inter', sans-serif;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.03);
+            color: white; cursor: pointer; transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .btn:hover {
+            background: rgba(255,255,255,1); color: black;
+            box-shadow: 0 0 30px rgba(255,255,255,0.4); transform: translateY(-2px);
+        }
+
+        .btn-red:hover {
+            background: #ff3b3b; color: white;
+            box-shadow: 0 0 30px rgba(255, 59, 59, 0.4);
+        }
+
+        #result-section {
+            display: none; opacity: 0; transition: opacity 1s ease;
+            flex-direction: column; align-items: center;
+        }
+
+        .success-text {
+            font-family: 'Playfair Display', serif; font-size: 1.5rem;
+            margin-bottom: 20px; font-style: italic;
+        }
+
+        .twitter-share {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: #fff; color: #000; border: none; font-weight: 600;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(1deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        @keyframes starsMove { from { background-position: 0 0; } to { background-position: 0 1000px; } }
+        @keyframes beamPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.8; } }
+        @keyframes shake { 
+            0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 
+            50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 
+            100% { transform: translateX(0); } 
+        }
+
+        .shake-anim { animation: shake 0.4s ease-in-out; }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .mascot-container { height: 200px; }
+            .logo { width: 90px; }
+            .btn { padding: 12px 25px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="noise"></div>
+    <div class="stars"></div>
+    <div class="beams"></div>
+
+    <div class="content-wrapper">
+        <img src="logo.png" alt="BULK" class="logo">
+        
+        <div class="mascot-container">
+            <!-- Default Image -->
+            <img src="bulk.png" alt="BULK Mascot" class="mascot-img" id="mascot">
+        </div>
+
+        <div id="question-section">
+            <h1 id="main-text">Will you BULK with me<br>on Valentine's Day?</h1>
+            
+            <div class="btn-group">
+                <button class="btn" onclick="handleYes()">I'm Bulking</button>
+                <button class="btn btn-red" onclick="handleNo()">Unbulkish</button>
+            </div>
+        </div>
+
+        <div id="result-section">
+            <h1>Bulked Successfully. <br><span>♥</span></h1>
+            <p class="success-text">We're going to the moon together.</p>
+            
+            <a id="share-link" href="#" target="_blank" style="text-decoration: none;">
+                <button class="btn twitter-share">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    Spread the BULK
+                </button>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 1. PRELOAD IMAGES (No flicker)
+        const imgYes = new Image(); imgYes.src = 'bulk1.png';
+        const imgNo = new Image(); imgNo.src = 'bulk2.png';
+        const imgDefault = new Image(); imgDefault.src = 'bulk.png';
+
+        const mascot = document.getElementById('mascot');
+        const mainText = document.getElementById('main-text');
+
+        function handleYes() {
+            // Swap to Happy Image
+            mascot.src = 'bulk1.png';
+            
+            // Trigger Confetti
+            fireConfetti();
+
+            // UI Transitions
+            const questionSec = document.getElementById('question-section');
+            const resultSec = document.getElementById('result-section');
+
+            // Fade out question
+            questionSec.style.opacity = '0';
+            mascot.style.transform = "scale(1.2) rotate(5deg)"; // Small pop effect
+
+            setTimeout(() => {
+                questionSec.style.display = 'none';
+                resultSec.style.display = 'flex';
+                void resultSec.offsetWidth; 
+                resultSec.style.opacity = '1';
+            }, 500);
+
+            // Prepare Twitter Link
+            const text = encodeURIComponent("I just said YES to BULKing with @bulktrade on Valentine's Day. 🌹💎 Are you Bulkish enough? \n\n");
+            const url = encodeURIComponent("https://bulkwithlove.xyz");
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+            document.getElementById('share-link').href = twitterUrl;
+        }
+
+        function handleNo() {
+            // Swap to Sad/Rejected Image
+            mascot.src = 'bulk2.png';
+
+            // Add shake effect to the text to indicate "Error/No"
+            mainText.classList.remove('shake-anim'); // reset animation
+            void mainText.offsetWidth; // trigger reflow
+            mainText.classList.add('shake-anim');
+
+            // Change Text temporarily or permanently
+            mainText.innerHTML = "BULK Rejected.<br>Ngmi anon.";
+            
+            // Optional: reset to default after 2 seconds? 
+            // Uncomment below if you want it to reset automatically
+            /*
+            setTimeout(() => {
+                 mascot.src = 'bulk.png';
+                 mainText.innerHTML = "Will you BULK with me<br>on Valentine's Day?";
+            }, 2000);
+            */
+        }
+
+        function fireConfetti() {
+            var duration = 3000;
+            var end = Date.now() + duration;
+            var colors = ['#bb0000', '#ffffff', '#e2d1c3'];
+
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: colors });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: colors });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+            
+            setTimeout(() => {
+                confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: colors, scalar: 1.2 });
+            }, 200);
+        }
+
+        // Parallax Effect
+        document.addEventListener('mousemove', (e) => {
+            if(document.getElementById('question-section').style.display !== 'none'){
+                const x = (window.innerWidth - e.pageX * 2) / 100;
+                const y = (window.innerHeight - e.pageY * 2) / 100;
+                mascot.style.transform = `translateX(${x}px) translateY(${y}px)`;
+            }
+        });
+    </script>
+</body>
+</html>
